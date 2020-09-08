@@ -1,0 +1,455 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ; main.s
+    2 00000000         ; Desenvolvido para a placa EK-TM4C1294XL
+    3 00000000         ; Prof. Guilherme Peron
+    4 00000000         ; Ver 1 19/03/2018
+    5 00000000         ; Ver 2 26/08/2018
+    6 00000000         ; Este é um projeto template.
+    7 00000000         
+    8 00000000         
+    9 00000000         ; ------------------------------------------------------
+                       -------------------------
+   10 00000000                 THUMB                        ; Instruções do tip
+                                                            o Thumb-2
+   11 00000000         ; ------------------------------------------------------
+                       -------------------------
+   12 00000000         
+   13 00000000         ; Declarações EQU - Defines
+   14 00000000         ;<NOME>         EQU <VALOR>
+   15 00000000         ; ========================
+   16 00000000         ; Definições de Valores
+   17 00000000         
+   18 00000000         
+   19 00000000         ; ------------------------------------------------------
+                       -------------------------
+   20 00000000         ; Área de Dados - Declarações de variáveis
+   21 00000000                 AREA             DATA, ALIGN=2
+   22 00000000         ; Se alguma variável for chamada em outro arquivo
+   23 00000000         ;EXPORT  <var> [DATA,SIZE=<tam>]   ; Permite chamar a va
+                       riável <var> a 
+   24 00000000         ; partir de outro arquivo
+   25 00000000         ;<var> SPACE <tam>                        ; Declara uma 
+                       variável de nome <var>
+   26 00000000         ; de <tam> bytes a partir da primeira 
+   27 00000000         ; posição da RAM  
+   28 00000000         
+   29 00000000         
+   30 00000000         ; ------------------------------------------------------
+                       -------------------------
+   31 00000000         ; Área de Código - Tudo abaixo da diretiva a seguir será
+                        armazenado na memória de 
+   32 00000000         ;                  código
+   33 00000000                 AREA             |.text|, CODE, READONLY, ALIGN=
+2
+   34 00000000         
+   35 00000000         ; Se alguma função do arquivo for chamada em outro arqui
+                       vo 
+   36 00000000                 EXPORT           Start       ; Permite chamar a 
+                                                            função Start a part
+                                                            ir de 
+   37 00000000         ; outro arquivo. No caso startup.s
+   38 00000000         
+   39 00000000         ; Se chamar alguma função externa 
+   40 00000000         ;IMPORT <func>              ; Permite chamar dentro dest
+                       e arquivo uma 
+   41 00000000         ; função <func>
+   42 00000000                 IMPORT           PLL_Init
+   43 00000000                 IMPORT           SysTick_Init
+   44 00000000                 IMPORT           SysTick_Wait1ms
+   45 00000000                 IMPORT           GPIO_Init
+   46 00000000                 IMPORT           PortJ_Input
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   47 00000000                 IMPORT           PortF_Output
+   48 00000000                 IMPORT           PortN_Output
+   49 00000000         
+   50 00000000 02 01 00 
+              00 00 01 cavaleiroN
+                               DCB              0x2, 0x1, 0, 0, 0, 0x1 ;
+   51 00000006 00 00 10 
+              01 10 00 cavaleiroF
+                               DCB              0, 0, 0x10, 0x1, 0x10, 0 ;
+   52 0000000C         
+   53 0000000C 00 00 00 
+              00 01 01 
+              01 01 02 
+              02 02 02 
+              03 03 03 
+              03       contadorN
+                               DCB              0, 0, 0, 0, 0x1, 0x1, 0x1, 0x1,
+ 0x2, 0x2, 0x2, 0x2, 0x3, 0x3, 0x3, 0x3 
+                                                            ;
+   54 0000001C 00 01 10 
+              11 00 01 
+              10 11 00 
+              01 10 11 
+              00 01 10 
+              11       contadorF
+                               DCB              0, 1, 0x10, 0x11, 0,  1, 0x10, 
+0x11, 0, 1, 0x10, 0x11, 0, 1, 0x10, 0x11 
+                                                            ;
+   55 0000002C         
+   56 0000002C E8 03 F4 
+              01 C8 00 velocidades
+                               DCW              1000, 500, 200 ;
+   57 00000032         ; ------------------------------------------------------
+                       -------------------------
+   58 00000032         ; Função main()
+   59 00000032         Start
+   60 00000032 F7FF FFFE       BL               PLL_Init
+   61 00000036 F7FF FFFE       BL               SysTick_Init
+   62 0000003A F7FF FFFE       BL               GPIO_Init
+   63 0000003E         
+   64 0000003E 4D33            LDR              R5, =velocidades
+   65 00000040 F04F 0400       MOV              R4, #0      ;contador de veloci
+                                                            dades 
+   66 00000044         
+   67 00000044 F04F 0900       MOV              R9, #0      ;Modo de operacao -
+                                                             0 para cavaleiro e
+                                                             1 para contador
+   68 00000048 F8B5 A000       LDRH             R10, [R5]   ;Velocidade: 1000, 
+                                                            500, ou 200
+   69 0000004C F04F 0B00       MOV              R11, #0     ;Estado do algoritm
+                                                            o do passeio
+   70 00000050 F04F 0C00       MOV              R12, #0     ;Estado do contador
+                                                            
+   71 00000054         
+   72 00000054         MainLoop
+   73 00000054 F1B9 0F00       CMP              R9, #0
+   74 00000058 BF08 F000 
+              F802             BLEQ             Passeio_do_cavaleiro
+   75 0000005E F000 F81A       BL               Contador
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   76 00000062         ;BL PortJ_Input     
+   77 00000062         
+   78 00000062         
+   79 00000062         Passeio_do_cavaleiro
+   80 00000062 F8DF 80AC       LDR              R8, =cavaleiroN
+   81 00000066 4F2B            LDR              R7, =cavaleiroF
+   82 00000068         
+   83 00000068 F818 000B       LDRB             R0, [R8, R11]
+   84 0000006C F7FF FFFE       BL               PortN_Output
+   85 00000070 F817 000B       LDRB             R0, [R7, R11]
+   86 00000074 F7FF FFFE       BL               PortF_Output
+   87 00000078 4650            MOV              R0, R10     ;Chamar a rotina pa
+                                                            ra esperar 0,5s
+   88 0000007A F7FF FFFE       BL               SysTick_Wait1ms
+   89 0000007E         
+   90 0000007E F1BB 0F05       CMP              R11, #5
+   91 00000082 BF2C            ITE              HS
+   92 00000084 F04F 0B00       MOVHS            R11, #0
+   93 00000088 F10B 0B01       ADDLO            R11, #1
+   94 0000008C         
+   95 0000008C         
+   96 0000008C F7FF FFFE       BL               PortJ_Input
+   97 00000090 2803            CMP              R0, #2_11
+   98 00000092 D11A            BNE              Verifica_SW1
+   99 00000094         
+  100 00000094 E7DE            B                MainLoop
+  101 00000096         
+  102 00000096         
+  103 00000096         
+  104 00000096         Contador
+  105 00000096 F8DF 8080       LDR              R8, =contadorN
+  106 0000009A 4F20            LDR              R7, =contadorF
+  107 0000009C         
+  108 0000009C F818 000C       LDRB             R0, [R8, R12]
+  109 000000A0 F7FF FFFE       BL               PortN_Output
+  110 000000A4 F817 000C       LDRB             R0, [R7, R12]
+  111 000000A8 F7FF FFFE       BL               PortF_Output
+  112 000000AC 4650            MOV              R0, R10     ;Chamar a rotina pa
+                                                            ra esperar 0,5s
+  113 000000AE F7FF FFFE       BL               SysTick_Wait1ms
+  114 000000B2         
+  115 000000B2 F1BC 0F0F       CMP              R12, #15
+  116 000000B6 BF2C            ITE              HS
+  117 000000B8 F04F 0C00       MOVHS            R12, #0
+  118 000000BC F10C 0C01       ADDLO            R12, #1
+  119 000000C0         
+  120 000000C0 F7FF FFFE       BL               PortJ_Input
+  121 000000C4         
+  122 000000C4 2803            CMP              R0, #2_11
+  123 000000C6 D100            BNE              Verifica_SW1
+  124 000000C8         
+  125 000000C8 E7C4            B                MainLoop
+  126 000000CA         
+  127 000000CA         
+  128 000000CA         Verifica_SW1
+  129 000000CA 2801            CMP              R0, #2_01
+  130 000000CC D10D            BNE              Verifica_SW2
+  131 000000CE         
+  132 000000CE F04F 0064       MOV              R0, #100
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  133 000000D2 B500            PUSH{LR}
+  134 000000D4 F7FF FFFE       BL               SysTick_Wait1ms
+  135 000000D8 F85D EB04       POP{LR}
+  136 000000DC 2C04            CMP              R4, #4
+  137 000000DE BF2C            ITE              HS
+  138 000000E0 2400            MOVHS            R4, #0
+  139 000000E2 3402            ADDLO            R4, #2
+  140 000000E4         
+  141 000000E4         
+  142 000000E4 F835 A004       LDRH             R10, [R5, R4]
+  143 000000E8 E7B4            B                MainLoop
+  144 000000EA         
+  145 000000EA         Verifica_SW2
+  146 000000EA 2802            CMP              R0, #2_10
+  147 000000EC D1B2            BNE              MainLoop
+  148 000000EE         
+  149 000000EE F04F 0064       MOV              R0, #100
+  150 000000F2 B500            PUSH{LR}
+  151 000000F4 F7FF FFFE       BL               SysTick_Wait1ms
+  152 000000F8 F85D EB04       POP{LR}
+  153 000000FC         
+  154 000000FC F1B9 0F00       CMP              R9, #0
+  155 00000100 BF0C            ITE              EQ
+  156 00000102 F04F 0901       MOVEQ            R9, #1
+  157 00000106 F04F 0900       MOVNE            R9, #0
+  158 0000010A         
+  159 0000010A E7A3            B                MainLoop
+  160 0000010C         
+  161 0000010C         ; ------------------------------------------------------
+                       --------------------------------------------------------
+                       -----------
+  162 0000010C         ; Fim do Arquivo
+  163 0000010C         ; ------------------------------------------------------
+                       --------------------------------------------------------
+                       ----------- 
+  164 0000010C                 ALIGN                        ;Garante que o fim 
+                                                            da seção está alinh
+                                                            ada 
+  165 0000010C                 END                          ;Fim do arquivo
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp.sp --apcs=
+interwork --depend=.\objects\main.d -o.\objects\main.o -IC:\Users\modin\AppData
+\Local\Arm\Packs\Keil\TM4C_DFP\1.1.0\Device\Include\TM4C129 -IC:\Keil_v5\ARM\CM
+SIS\Include --predefine="__EVAL SETA 1" --predefine="__UVISION_VERSION SETA 531
+" --predefine="TM4C1294NCPDT SETA 1" --list=.\listings\main.lst main.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DATA 00000000
+
+Symbol: DATA
+   Definitions
+      At line 21 in file main.s
+   Uses
+      None
+Comment: DATA unused
+1 symbol
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 33 in file main.s
+   Uses
+      None
+Comment: .text unused
+Contador 00000096
+
+Symbol: Contador
+   Definitions
+      At line 104 in file main.s
+   Uses
+      At line 75 in file main.s
+Comment: Contador used once
+MainLoop 00000054
+
+Symbol: MainLoop
+   Definitions
+      At line 72 in file main.s
+   Uses
+      At line 100 in file main.s
+      At line 125 in file main.s
+      At line 143 in file main.s
+      At line 147 in file main.s
+      At line 159 in file main.s
+
+Passeio_do_cavaleiro 00000062
+
+Symbol: Passeio_do_cavaleiro
+   Definitions
+      At line 79 in file main.s
+   Uses
+      At line 74 in file main.s
+Comment: Passeio_do_cavaleiro used once
+Start 00000032
+
+Symbol: Start
+   Definitions
+      At line 59 in file main.s
+   Uses
+      At line 36 in file main.s
+Comment: Start used once
+Verifica_SW1 000000CA
+
+Symbol: Verifica_SW1
+   Definitions
+      At line 128 in file main.s
+   Uses
+      At line 98 in file main.s
+      At line 123 in file main.s
+
+Verifica_SW2 000000EA
+
+Symbol: Verifica_SW2
+   Definitions
+      At line 145 in file main.s
+   Uses
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 130 in file main.s
+Comment: Verifica_SW2 used once
+cavaleiroF 00000006
+
+Symbol: cavaleiroF
+   Definitions
+      At line 51 in file main.s
+   Uses
+      At line 81 in file main.s
+Comment: cavaleiroF used once
+cavaleiroN 00000000
+
+Symbol: cavaleiroN
+   Definitions
+      At line 50 in file main.s
+   Uses
+      At line 80 in file main.s
+Comment: cavaleiroN used once
+contadorF 0000001C
+
+Symbol: contadorF
+   Definitions
+      At line 54 in file main.s
+   Uses
+      At line 106 in file main.s
+Comment: contadorF used once
+contadorN 0000000C
+
+Symbol: contadorN
+   Definitions
+      At line 53 in file main.s
+   Uses
+      At line 105 in file main.s
+Comment: contadorN used once
+velocidades 0000002C
+
+Symbol: velocidades
+   Definitions
+      At line 56 in file main.s
+   Uses
+      At line 64 in file main.s
+Comment: velocidades used once
+12 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+GPIO_Init 00000000
+
+Symbol: GPIO_Init
+   Definitions
+      At line 45 in file main.s
+   Uses
+      At line 62 in file main.s
+Comment: GPIO_Init used once
+PLL_Init 00000000
+
+Symbol: PLL_Init
+   Definitions
+      At line 42 in file main.s
+   Uses
+      At line 60 in file main.s
+Comment: PLL_Init used once
+PortF_Output 00000000
+
+Symbol: PortF_Output
+   Definitions
+      At line 47 in file main.s
+   Uses
+      At line 86 in file main.s
+      At line 111 in file main.s
+
+PortJ_Input 00000000
+
+Symbol: PortJ_Input
+   Definitions
+      At line 46 in file main.s
+   Uses
+      At line 96 in file main.s
+      At line 120 in file main.s
+
+PortN_Output 00000000
+
+Symbol: PortN_Output
+   Definitions
+      At line 48 in file main.s
+   Uses
+      At line 84 in file main.s
+      At line 109 in file main.s
+
+SysTick_Init 00000000
+
+Symbol: SysTick_Init
+   Definitions
+      At line 43 in file main.s
+   Uses
+      At line 61 in file main.s
+Comment: SysTick_Init used once
+SysTick_Wait1ms 00000000
+
+Symbol: SysTick_Wait1ms
+   Definitions
+      At line 44 in file main.s
+   Uses
+      At line 88 in file main.s
+      At line 113 in file main.s
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+External symbols
+
+      At line 134 in file main.s
+      At line 151 in file main.s
+
+7 symbols
+356 symbols in table
